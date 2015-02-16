@@ -15,6 +15,7 @@ WARNING: This code does not contain a lot of error checks, so can/will crash on 
 For Python 2.7.8
 
 # Dependencies
+# Paramiko requires Visual C++ for Python, available here: http://www.microsoft.com/en-us/download/details.aspx?id=44266
 
 import paramiko
 import time
