@@ -1,5 +1,6 @@
-# SteelheadPowerCLI
+# SteelheadPowerCLI Python Script
 
+- Form factor: standard cli like
 - Run any standard command on multiple Steelheads at the same time.
 - Also contains "custom" made commands which the standard CLI is lacking.
     Display sessions per HTTP destination server.
@@ -29,16 +30,17 @@ import re
 
 # Usage
 
+help                              ! Display some help
 add_host <ip>,<username>,<pwd>    ! Add a host
 add_host <ip>,<username>,<pwd>    ! Add a host
 show hosts                        ! Show configured hosts
 connect                           ! Initialise SSH sessions to hosts
-show opt                          ! Basic overview of optimized sessions per destination server (on all hosts)
-show pass                         ! Basic overview of passthrough sessions per destination server
-show opt tcp 80 top 5             ! Show top 5 HTTP servers with most optimised connections
-show opt tcp 443                  ! Show overview of optimized HTTPS sessions
-show opt tcp 443 clients top 10   ! Show the top 10 clients that have the most tcp 443 optimized connections
-show preex                        ! Show aggregate of pre-existing sessions
+show opt                          ! Basic overview of optimized sessions agg per destination server (on all hosts)
+show pass                         ! Basic overview of passthrough sessions agg per destination server (on all hosts)
+show opt tcp 80 top 5             ! Show top 5 HTTP servers with most optimised connections (on all hosts)
+show opt tcp 443                  ! Show overview of optimized HTTPS sessions (on all hosts)
+show opt tcp 443 clients top 10   ! Show the top 10 clients that have the most tcp 443 optimized connections (on all hosts)
+show preex                        ! Show overview (aggregate) of pre-existing sessions per destination server (on all hosts)
 
 # Work to be done
 
