@@ -45,7 +45,6 @@ show preex                        ! Show overview (aggregate) of pre-existing se
 
 # Work to be done
 
-- save and load host list
 - aggregate optimisation statistics (ie optimisation rate etc)
 - mass reset pre-existing sessions
 - MUCH more error checking on wrong inputs
