@@ -9,6 +9,7 @@ import logging.handlers
 import sys
 import argparse
 import re
+import json
 
 class RunCommand(cmd.Cmd):
  """ Simple shell to run a command on the host """
@@ -28,15 +29,73 @@ class RunCommand(cmd.Cmd):
   self.pwd = ''
   self.user = ''
 
- def do_add_host(self, args):
-  """add_host : Add a host to the host list."""
-  if len(args.split(','))==3:
-   self.hosts.append(args.split(','))
-  elif (len(args.split(','))==1 and self.pwd != '' and self.user != ''):
-   self.hosts.append([args,self.user,self.pwd])
+ def do_add(self, args):
+  """add host : Add a host to the host list."""
+  l = args.split()
+  if len(l) < 1:
+   print "Add needs an argument. Do 'help add'"
+   return
+  if l[0] <> 'host':
+   print "Unknown argument. Do 'help add'"
+   return
+  tekst = l[1]
+  if len(tekst.split(','))==3:
+   self.hosts.append(tekst.split(','))
+  elif (len(tekst.split(','))==1 and self.pwd != '' and self.user != ''):
+   self.hosts.append([tekst,self.user,self.pwd])
   else:
-   print "usage: add_host <ip>,<username>,<pwd> "
+   print "usage: add host <ip>,<username>,<pwd> "
    print "usage: add host <ip> + make sure pwd and user settings are defined using set command"
+   
+ def do_save(self, args):
+  """save hosts     : Save hosts to default file hosts.txt"""
+  l = args.split()
+  if len(l) < 1:
+   print "Save needs an argument. Do 'help save'"
+   return
+  if l[0] <> 'hosts':
+   print "Unknown argument. Do 'help save'"
+   return
+  if self.hosts == []:
+   print "Nothing to save. Add hosts with add_host or load hosts with load_hosts."
+   return
+  try:
+   f = open('./hosts.txt', 'w')
+   json.dump(self.hosts,f)
+   f.close()
+  except IOError as e:
+    print "I/O error({0}): {1}".format(e.errno, e.strerror)
+  except:
+    print "Unexpected error:", sys.exc_info()[0]
+    raise
+  print json.dumps(self.hosts)  
+  print "Hosts successfully written to file."
+  
+ def do_load(self,args):
+  """load hosts      : Load hosts from default file hosts.txt"""
+  l = args.split()
+  if len(l) < 1:
+   print "Load needs an argument. Do 'help load'"
+   return
+  if l[0] <> 'hosts':
+   print "Unknown argument. Do 'help load'"
+   return
+  try:
+   f = open('./hosts.txt', 'r')
+   self.hosts = json.load(f)
+   f.close()
+  except IOError as e:
+    print "I/O error({0}): {1}".format(e.errno, e.strerror)
+  except:
+    print "Unexpected error:", sys.exc_info()[0]
+    raise
+  print self.hosts
+  print "Successfully loaded hosts."
+
+  
+ def do_exit(self,args):
+  """exit : Exit PowerCLI"""
+  return True
    
  def do_set(self, args):
   """set debug on|off        : Set debug output on|off
@@ -59,19 +118,24 @@ set pwd <pwd>           : Default password"""
    else: print ('Please provide password. set pwd <password>')
  
 
- def do_remove_host(self, args):
-  """remove_host : Remove a host from the host list."""
-  if args:
-   log.info( "to be implemented")
-  else:
-   print "Usage: remove_host <ip> "
+ def do_remove(self, args):
+  """remove host <ip>: Remove a host with ip <ip> from the host list [NOT IMPLEMENTED YET]."""
+  l = args.split()
+  if len(l) < 1:
+   print "Add needs an argument. Do 'help remove'"
+   return
+  if l[0] <> 'host':
+   print "Unknown argument. Do 'help remove'"
+   return
+  log.info( "TO BE IMPLEMENTED")
+ 
   
  def do_show(self, args):
   """show hosts     : View configured hosts
-show opt       : Show optimized connections
-show opt_ssl   : Show optimized SSL connections, aggregated per destination host
-show pass      : Show passthrough connections
-show preex     : Show preexisting sessions
+show opt       : Show summary of optimized connections
+show opt_ssl   : Show summary of optimized SSL connections
+show pass      : Show summary of passthrough connections
+show preex     : Show summary of preexisting sessions
 show set       : Show settings"""
   l = args.split()
   if len(l) < 1:
@@ -331,7 +395,7 @@ show set       : Show settings"""
 
 
  def do_connect(self, args):
-  """Connect to all hosts in the hosts list"""
+  """connect       : Connect to all hosts in the hosts list"""
   for host in self.hosts:
    log.info("Trying to connect to "+host[0])
    ssh = paramiko.SSHClient()
@@ -361,7 +425,7 @@ show set       : Show settings"""
    #print self.hostnames
 
  def do_run(self, command):
-  """Execute normal CLI command on all hosts in the list"""
+  """run <command>     : Execute normal CLI command on all hosts in the list"""
   if command:
    for host, conn, naam in zip(self.hosts, self.connections, self.hostnames):
     log.info(naam)
@@ -385,7 +449,7 @@ show set       : Show settings"""
    print "Usage: run <command> "
 
  def do_close(self, args):
-  """Close connections to all hosts in the hosts list"""
+  """close           : Close connections to all hosts in the hosts list"""
   for conn in self.connections:
    conn.close()
 
