@@ -14,10 +14,27 @@ WARNING: This code does not contain a lot of error checks, so can/will crash on 
 
 For Python 2.7.8
 
+# Release history
+
+v0.1 : First version
+v0.2
+ You can now save your host list and load it from file
+ Added 'exit' command to exit shell
+v0.3
+ Reworked statistics analysis to Pandas module.
+ The script now has an additional dependecy on pandas module
+ Reworked the "add_hosts" command to "add hosts", removing "_" from commands for consistency
+ Removed the "show opt_ssl" command, use "show opt tcp 443", which is just the same
+
+ 
+
+
 # Dependencies
 # Paramiko requires Visual C++ for Python, available here: http://www.microsoft.com/en-us/download/details.aspx?id=44266
 
 import paramiko
+import pandas
+import numpy
 import time
 import StringIO
 import string
@@ -32,8 +49,8 @@ import re
 # Usage
 
 help                              ! Display some help
-add_host <ip>,<username>,<pwd>    ! Add a host
-add_host <ip>,<username>,<pwd>    ! Add a host
+add host <ip>,<username>,<pwd>    ! Add a host
+add host <ip>,<username>,<pwd>    ! Add a host
 show hosts                        ! Show configured hosts
 connect                           ! Initialise SSH sessions to hosts
 show opt                          ! Basic overview of optimized sessions agg per destination server (on all hosts)
