@@ -2,7 +2,7 @@ import paramiko
 import time
 import StringIO
 import string
-from collections import Counter
+#from collections import Counter
 import cmd
 import logging
 import logging.handlers
@@ -67,9 +67,10 @@ class RunCommand(cmd.Cmd):
    f.close()
   except IOError as e:
     print "I/O error({0}): {1}".format(e.errno, e.strerror)
+    return
   except:
     print "Unexpected error:", sys.exc_info()[0]
-    raise
+    return
   print json.dumps(self.hosts)  
   print "Hosts successfully written to file."
   
@@ -88,9 +89,10 @@ class RunCommand(cmd.Cmd):
    f.close()
   except IOError as e:
     print "I/O error({0}): {1}".format(e.errno, e.strerror)
+    return
   except:
     print "Unexpected error:", sys.exc_info()[0]
-    raise
+    return
   print self.hosts
   print "Successfully loaded hosts."
 
@@ -101,7 +103,7 @@ class RunCommand(cmd.Cmd):
    
  def do_set(self, args):
   """set debug on|off        : Set debug output on|off
-set resolvedns on|off   : Resolve each IP address in output to DNS name
+set resolvedns on|off   : Resolve each IP address in output to DNS name (not implemented yet)
 set user <user>         : Default username
 set pwd <pwd>           : Default password"""
   l = args.split()
@@ -120,12 +122,12 @@ set pwd <pwd>           : Default password"""
    else: print ('Please provide password. set pwd <password>')
  
 
- def do_remove_host(self, args):
-  """remove_host : Remove a host from the host list [NOT IMPLEMENTED YET]."""
-  if args:
-   log.info( "to be implemented")
-  else:
-   print "Usage: remove_host <ip> "
+ #def do_remove_host(self, args):
+ # """remove_host : Remove a host from the host list [NOT IMPLEMENTED YET]."""
+ # if args:
+ #  log.info( "to be implemented")
+ # else:
+ #  print "Usage: remove_host <ip> "
   
  def do_show(self, args):
   """show hosts     : View configured hosts
@@ -143,7 +145,7 @@ show set       : Show settings"""
    log.info("resolvedns = %s" % self.resolvedns)
    log.info("user = %s" % self.user)
    log.info("pwd = %s" % self.pwd)
-  
+   return  
   
   if l[0] == 'hosts':
    log.info("Configured hosts")
@@ -212,7 +214,7 @@ show set       : Show settings"""
 	
     for host, conn, naam in zip(self.hosts, self.connections, self.hostnames):
      log.info( naam + cli_command[1])
-     log.info('------------------------------------------------')
+     log.info('---------------------------------------------------------')
      channel = conn.invoke_shell()
      channel.settimeout(10800)
      channel.send('term length 0\n')
@@ -221,8 +223,8 @@ show set       : Show settings"""
      while not buff.endswith('> '):
       resp = channel.recv(9999)
       buff += resp
-      if (self.debug): log.debug("Buffer")
-      if (self.debug): log.debug(buff)
+      #if (self.debug): log.debug("Buffer")
+      #if (self.debug): log.debug(buff)
      opt_conn = buff
 
      count = 0
@@ -235,8 +237,8 @@ show set       : Show settings"""
       if line.startswith(cli_command[2]):
        parts = line.split()
        rijdict = {}
-       if (self.debug): log.debug("Parts")
-       if (self.debug): log.debug(parts)
+       #if (self.debug): log.debug("Parts")
+       #if (self.debug): log.debug(parts)
        source = parts[1]
        (sourceip,sourceport) = source.split(':')
        destination = parts[2]
@@ -248,24 +250,25 @@ show set       : Show settings"""
        #tijd = parts[6]
        #print sourceip+" "+sourceport+" "+destip+" "+destport+" "+protocol
        rijdict.update({'sourceip': sourceip})
-       rij.append(sourceip)
+       #rij.append(sourceip)
        
        rijdict.update({'sourceport': sourceport})
-       rij.append(sourceport)
+       #rij.append(sourceport)
        
        rijdict.update({'destip': destip})
-       rij.append(destip)
+       #rij.append(destip)
        
        rijdict.update({'destport': destport})
-       rij.append(destport)
+       #rij.append(destport)
        
        rijdict.update({'protocol': protocol})
-       rij.append(protocol)
+       #rij.append(protocol)
        count = count + 1
 
       #only collect LAN/WAN statistics for optimized sessions
       #note: these lan/wan statistics are on another line as the previous statistics (wan is first)
       #lan line concludes all data -> save
+      #NOTE2: maybe it is better to make lan/wan columns always and fill them with 0 for passtrue sessions
       
       if (parsed_arg.func == 'opt'):
        lan = []
@@ -276,13 +279,15 @@ show set       : Show settings"""
        
        if (wan != []): 
         #print wan[0]
-        rij.append(wan[0])
-        rijdict.update({'wan': wan})
+        #rij.append(wan[0])
+        #must change to integer in order to be able to aggregate later with pandas !
+        rijdict.update({'wan': int(wan[0])})
        
        if (lan != []):
         #print lan[0]
-        rij.append(lan[0])
-        rijdict.update({'lan': lan})
+        #rij.append(lan[0])
+        #must change to integer in order to be able to aggregate later with pandas !
+        rijdict.update({'lan': int(lan[0])})
         #conclude collection (if opt)
         pandas_rij.append(rijdict)
       
@@ -292,165 +297,149 @@ show set       : Show settings"""
        #copy row to array
        pandas_rij.append(rijdict)
       
-     if (parsed_arg.func == 'opt'): 
-      # 7 parameters per row     
-      multi = zip(rij[0::7],rij[1::7],rij[2::7],rij[3::7],rij[4::7],rij[5::7],rij[6::7])
-     else:
-      # 5 parameters per row
-      multi = zip(rij[0::5],rij[1::5],rij[2::5],rij[3::5],rij[4::5])
      
      #convert to pandas dataframe
-     df = pd.DataFrame(pandas_rij)   
-     
-     if (self.debug): log.debug(multi)
-     if (self.debug): log.debug(df)
-     #print multi[100]
+     df = pd.DataFrame(pandas_rij)
      
      
-     filtered = []
+     
+     
+      
+     
+     
+     
+     #save df to disk (so i can analyse it easily further in ipython notebook :-)
+     df.to_csv('./last.csv')
+     
+     #from now on, work only with pandas, comment out older (non-pandas) code
+     
+     #filtered = []
      #Execute additional filtering on TCP if tcp parameter is given
      if (parsed_arg.tcp):
-      count = 0
-      #just one simple line with pandas
-      df = df[df.destport == parsed_arg.tcp]
-      for line in multi:
-       if (line[3] == parsed_arg.tcp):
-        #print line
-        filtered.append(line)
-        count = count + 1
-      multi = filtered  
-    
+      #count = 0
+      df = df.convert_objects(convert_numeric=True)
+      #just one simple line with pandas, destport must be int here, therefore above line
+      df = df[df.destport == int(parsed_arg.tcp)]
+     
+     if (self.debug): log.debug(df.dtypes)
      if (self.debug): log.debug(df)
      
 
      #AGGREGATE PER TCP
      #extract TCP ports out of array (TCP = index 3)
-     aggregate = [x[3] for x in multi]
-     #and sorted immediatly in pandas
-     pandas_a = df.groupby('destport').count().sort('destip',ascending=False)
+     #aggregate = [x[3] for x in multi]
      
+     #and sorted immediatly in pandas
+     #pandas_a = df.groupby('destport').count().sort('destip',ascending=False)
+     
+     
+     #get counts table
+     count = df.groupby('destport')['destport'].count()
+     #aggregate by destport (sum bytes in lan/wan) and drop sourceport column
+     
+     #result = df.groupby('destport').sum().drop('sourceport',1)
+     #BUG NOTE: if sourceport is not converted to integer, it will be removed by the .sum and the .drop will give an error.....
+     #code below is better
+     
+     result = df.groupby('destport').sum()
+     if 'sourceport' in result.columns:
+      #drop 'sourceport' but first check for existance
+      result=result.drop('sourceport',1)
+     
+     #BUG NOTE: the index (destports) is again a string, and therefore prints ok during output
+     #joint count table, column name will be destport, rename to count
+     result = result.join(count).rename(columns = {'destport':'count'})
+     #sort descending on count
+     pandas_a = result.sort('count',ascending=False)
+     
+     
+     #NOTE: LAN & WAN numbers are in KB , which is quiet large for some sessions
+     #NOTE: some sessions have 0 KB WAN and 0 KB LAN -> should see if i can find a command that shows B instead of KB maybe
+     #NOTE: some sessions have > LAN bytes then WAN bytes, in riverbed these are counted as 0% optimisation (which is actually false and will increase
+     #optimisation rate of the protocol false positive)
+     #NOTE: if we add them up to valid sessions, they will bring down the optimisation rate (which resembles more reality)
+    
+     
+          
      
      #if tcp is specified, aggregate on destination IP address (index = 2) by default
      #if client option is specified, aggregate by client ip address instead
      #else nothing specified, TCP default (keep the above)
      if (parsed_arg.tcp) and not(parsed_arg.clients):
-      aggregate = [x[2] for x in multi]
-      pandas_a = df.groupby('destip').count().sort('destport',ascending=False)
-      log.info('Destination IP  : #')
+      #aggregate = [x[2] for x in multi]
+      #pandas_a = df.groupby('destip').count().sort('destport',ascending=False)
+      
+      count = df.groupby('destip')['destip'].count()
+      #aggregate by destip (sum bytes in lan/wan) and drop sourceport+destport column
+      result = df.groupby('destip').sum().drop('sourceport',1)
+      result = result.drop('destport',1)
+      #joint count table, column name will be destport, rename to count
+      result = result.join(count).rename(columns = {'destip':'count'})
+      #sort descending on count
+      pandas_a = result.sort('count',ascending=False)
+     
+      
+      
+      log.info('Destination IP  : #           : LAN KB      : WAN KB      : KB Saved    : Opt Rate')
      elif (parsed_arg.tcp) and (parsed_arg.clients):
-      aggregate = [x[0] for x in multi]
-      pandas_a = df.groupby('sourceip').count().sort('sourceport',ascending=False)
-      log.info('Client IP       : #')
-     else: log.info('TCP             : #')
+      #aggregate = [x[0] for x in multi]
+      #pandas_a = df.groupby('sourceip').count().sort('sourceport',ascending=False)
+      
+      count = df.groupby('sourceip')['sourceip'].count()
+      #aggregate by sourceip (sum bytes in lan/wan) and drop sourceport+destport column
+      result = df.groupby('sourceip').sum().drop('sourceport',1)
+      result = result.drop('destport',1)
+      #joint count table, column name will be destport, rename to count
+      result = result.join(count).rename(columns = {'sourceip':'count'})
+      #sort descending on count
+      pandas_a = result.sort('count',ascending=False)
+      
+      log.info('Client IP       : #           : LAN KB      : WAN KB      : KB Saved    : Opt Rate')
+     else: log.info('TCP             : #           : LAN KB      : WAN KB      : KB Saved    : Opt Rate')
+     
+     
+     #calculate optimisation rates -only- when viewing optimized sessions
+     if (parsed_arg.func == 'opt'):
+      #make sure lan/wan are integer
+      pandas_a = pandas_a.convert_objects(convert_numeric=True)
+      pandas_a['kbsaved']=pandas_a['lan']-pandas_a['wan']
+      pandas_a['rate']=100*pandas_a['kbsaved']/pandas_a['lan']
+     
      
      if (self.debug): log.debug(pandas_a)
+     if (self.debug): log.debug(pandas_a.dtypes)
      
-     log.info('--------------------------------------')
+     log.info('---------------------------------------------------------------------------------------------')
 	
-     #aggregate by nth element
-     #maximum = top parameter; 0 = print all, no top
-     if (maximum == 0): 
-      sumprot = Counter(aggregate)
-      if (self.debug): print sumprot
-      #print counter var (set to only take unique values)
-      #for element in set(sumprot.elements()):
-      # log.info('{0: <16}: {1: <16}'.format(element,sumprot[element]))
-      #pandas
-      
-      #note: instead of iterating row by row, we can also just print the darn thing with only one column and the column name changed
-      #formatting is done by pandas then  (maybe for future versions)
-      for index, row in pandas_a.iterrows():
-       #need to be carefull here about which column we select, can't select destip
-       #when aggregated on destip, this columnindex does not exist anymore
-       #protocol is always there
-       log.info('{0: <16}: {1: <16}'.format(index,row['protocol']))
      
-	 
-	 #maximum is given (ie top 10)
-     else:
-      sumprot = Counter(aggregate).most_common(int(maximum))
-      if (self.debug): print sumprot
-	  #sumprot is now not a counterobject anymore, but normal list
-      #old style
-      #for a,b in sumprot:
-      # log.info('{0: <16}: {1: <16}'.format(a,b))
-      #pandas style
-      #pandas_a is already sorted
+     #maximum = top parameter; 0 = print all, <> 0 = print only top x records
+     if (maximum <> 0): 
+      #truncate to top <maximum> records
       pandas_a = pandas_a.head(int(maximum))
+     
+     
+     if (self.debug): log.debug(pandas_a)     
       
-      if (self.debug): log.debug(pandas_a)
+     #note: instead of iterating row by row, we can also just print the darn thing with only one column and the column name changed
+     #formatting is done by pandas by default  (maybe for future versions)
+     for index, row in pandas_a.iterrows():
+      if (parsed_arg.func == 'opt'):
+       log.info('{0:<16}: {1:<12.0f}: {2:<12.0f}: {3:<12.0f}: {4:<12.0f}: {5:<12.2f}'.format(index,row['count'],row['lan'],row['wan'],row['kbsaved'],row['rate']))
+      else:
+       log.info('{0:<16}: {1:<12.0f}'.format(index,row['count']))
      
-      for index, row in pandas_a.iterrows():
-       #need to be carefull here about which column we select, can't select destip
-       #when aggregated on destip, this columnindex does not exist anymore
-       #protocol is always there
-       log.info('{0: <16}: {1: <16}'.format(index,row['protocol']))
-    
-     
-     log.info('Total Sessions: ' + str(pandas_a['protocol'].sum()))
+     som = pandas_a.sum()
+     log.info('---------------------------------------------------------------------------------------------')
+     if (parsed_arg.func == 'opt'):
+      log.info('Totals          : {0:<12.0f}: {1:<12.0f}: {2:<12.0f}: {3:<12.0f}: {4:<12.2f}'.format(som['count'],som['lan'],som['wan'],som['kbsaved'],100*(som['lan']-som['wan'])/som['lan']))
+     else:
+      log.info('Totals          : {0:<12.0f}'.format(som['count']))
      log.info("========== end of data ========= ")
 
   # --
   # -- removed "show opt_ssl" command, use "show opt tcp 443" instead which is just the same	 
   # --
-  #elif l[0] == 'opt_ssl':
-  #  for host, conn, naam in zip(self.hosts, self.connections, self.hostnames):
-  #   log.info(naam + ' : Optimized SSL (TCP443) Connections Overview')
-  #   log.info('------------------------------------------------------------')
-  #   channel = conn.invoke_shell()
-  #   channel.settimeout(10800)
-  #   channel.send('term length 0\n')
-  #   channel.send('show connections optimized\n')
-  #   buff = ''
-  #   while not buff.endswith('> '):
-  #    resp = channel.recv(9999)
-  #    buff += resp
-  #    if (self.debug): log.debug(buff)
-  #   opt_conn = buff
-  #
-  #  count = 0
-  #   rij = []
-  #   for line in StringIO.StringIO(opt_conn):
-  #    line = line.replace("\n","")
-  #    if line.startswith('O'):
-  #     parts = line.split()
-  #     source = parts[1]
-  #     (sourceip,sourceport) = source.split(':')
-  #     destination = parts[2]
-  #     (destip,destport) = destination.split(':')
-  #     protocol = parts[3]
-  #     rate = parts[4]
-  #     datum = parts[5]
-  #     tijd = parts[6]
-  #     #print sourceip+" "+sourceport+" "+destip+" "+destport+" "+protocol
-  #     if (destport == '443'):
-  #      rij.append(sourceip)
-  #      rij.append(sourceport)
-  #      rij.append(destip)
-  #      rij.append(destport)
-  #      rij.append(protocol)
-  #      count = count + 1
-  #
-  #   multi = zip(rij[0::5],rij[1::5],rij[2::5],rij[3::5],rij[4::5])
-  #   #print multi
-  #   #print multi[100]
-  #
-  #   #extract nth element in array
-  #   protocols = [x[2] for x in multi]
-  #	
-  #   log.info('HOST           : #')
-  #   log.info('---------------------------')
-  #	
-  #   #aggregate by nth element
-  #   sumprot = Counter(protocols)
-  #   #sumprot = counter object
-  #   #print counter var (set to only take unique values)
-  #   for element in set(sumprot.elements()):
-  #    log.info('{0: <15}: {1: <6}'.format(element,sumprot[element]))
-  #	 	 
-  #   log.info('Total SSL Optimized Sessions: ' + str(count))
-  #   log.info("========== end of data ========= ")
-
+  
   else: log.info('Unknown argument. Use help show to see syntax.')
 
 
