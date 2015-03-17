@@ -25,6 +25,9 @@ v0.3
  The script now has an additional dependecy on pandas module
  Reworked the "add_hosts" command to "add hosts", removing "_" from commands for consistency
  Removed the "show opt_ssl" command, use "show opt tcp 443", which is just the same
+v0.4
+ Finally added individual optimisation statistics
+ Removed "remove_host" command until implemented
 
  
 
